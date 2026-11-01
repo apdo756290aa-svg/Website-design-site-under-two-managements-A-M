@@ -1,0 +1,1368 @@
+<!-- Chosen Palette: Dark Neon Gold & Crimson -->
+<!-- Application Structure Plan: Interactive Customer SPA with Supabase cloud DB connection, voice notes, selfie capture, and dynamic order blocking when system status is closed. -->
+<!-- Visualization & Content Choices: Styled Tailwind/CSS components, FontAwesome icons, Canvas for camera, Supabase JS SDK v2. -->
+<!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MA Code | الحلول البرمجية وتصميم المواقع العصرية</title>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        :root {
+            --bg-base: #030305;
+            --surface: #0a0a0f;
+            --surface-hover: #13131c;
+            --primary: #990033;
+            --primary-glow: rgba(153, 0, 51, 0.45);
+            --accent: #d4af37;
+            --accent-glow: rgba(212, 175, 55, 0.35);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border: rgba(212, 175, 55, 0.2);
+            --glass: rgba(14, 14, 20, 0.88);
+        }
+
+        body.light-mode {
+            --bg-base: #f0f2f5;
+            --surface: #ffffff;
+            --surface-hover: #f1f5f9;
+            --primary: #990033;
+            --primary-glow: rgba(153, 0, 51, 0.2);
+            --accent: #b8860b;
+            --accent-glow: rgba(184, 134, 11, 0.2);
+            --text-main: #0f172a;
+            --text-muted: #64748b;
+            --border: rgba(153, 0, 51, 0.15);
+            --glass: rgba(255, 255, 255, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+            scroll-behavior: smooth;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+        }
+
+        body {
+            background: var(--bg-base);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .system-banner {
+            display: none;
+            text-align: center;
+            padding: 10px;
+            font-weight: 800;
+            font-size: 0.9rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+        .system-banner.delayed { display: block; background: #f97316; color: #000; }
+        .system-banner.closed { display: block; background: #ef4444; color: #fff; }
+
+        .ambient-glow {
+            position: fixed;
+            top: -20vh;
+            left: -20vw;
+            width: 60vw;
+            height: 60vh;
+            background: radial-gradient(circle, var(--primary-glow) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+            filter: blur(80px);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1150px;
+            margin: 0 auto;
+            padding: 0 15px;
+            position: relative;
+            z-index: 1;
+        }
+
+        nav {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 1150px;
+            background: var(--glass);
+            backdrop-filter: blur(16px);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            z-index: 100;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 65px;
+            padding: 0 15px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .logo img {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            border: 1.5px solid var(--accent);
+            object-fit: cover;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .logo span {
+            font-size: 1.15rem;
+            font-weight: 900;
+            color: var(--text-main);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 12px;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.82rem;
+            cursor: pointer;
+        }
+
+        .nav-links a:hover, .nav-links a.active-link {
+            color: var(--accent);
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text-main);
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+
+        .mobile-dropdown {
+            position: absolute;
+            top: 75px;
+            left: 0;
+            width: 100%;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 16px;
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            z-index: 101;
+        }
+        .mobile-dropdown.active { display: flex; }
+        .mobile-dropdown a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 0.95rem;
+            padding: 8px 12px;
+            border-radius: 10px;
+            background: var(--bg-base);
+            text-align: right;
+        }
+        .mobile-dropdown a:hover, .mobile-dropdown a.active-link {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .btn-modern {
+            background: linear-gradient(135deg, rgba(212, 175, 55, 0.15), rgba(153, 0, 51, 0.15));
+            border: 1.5px solid var(--border);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            text-decoration: none;
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-modern:hover {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--accent-glow);
+        }
+
+        .btn-primary-glow {
+            background: linear-gradient(135deg, var(--primary), #59001d);
+            border: 1.5px solid var(--accent);
+            color: #fff;
+            box-shadow: 0 4px 20px var(--primary-glow);
+        }
+
+        .icon-btn-modern {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            color: var(--text-main);
+            width: 38px;
+            height: 38px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .icon-btn-modern:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: scale(1.05);
+        }
+
+        .page-view {
+            display: none;
+            padding: 110px 0 60px;
+            animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .page-view.active-page { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hero-section {
+            min-height: 70vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .hype-badge {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 6px 16px;
+            border-radius: 50px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            margin-bottom: 15px;
+            box-shadow: 0 0 15px var(--accent-glow);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .hero-title {
+            font-size: clamp(1.8rem, 5vw, 2.8rem);
+            font-weight: 900;
+            margin-bottom: 12px;
+            line-height: 1.25;
+        }
+
+        .hero-subtitle {
+            color: var(--text-muted);
+            font-size: clamp(0.95rem, 3vw, 1.08rem);
+            max-width: 600px;
+            margin-bottom: 25px;
+            padding: 0 10px;
+        }
+
+        .search-box-modern {
+            width: 100%;
+            max-width: 700px;
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+        }
+
+        .search-box-modern:focus-within {
+            border-color: var(--accent);
+            box-shadow: 0 0 25px var(--accent-glow);
+        }
+
+        .search-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text-main);
+            font-size: 0.98rem;
+            font-weight: 600;
+            text-align: right;
+            min-width: 0;
+        }
+
+        .search-input::placeholder { color: var(--text-muted); }
+
+        .gemini-action-btn {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 1rem;
+            cursor: pointer;
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            flex-shrink: 0;
+        }
+        .gemini-action-btn:hover { color: var(--accent); border-color: var(--accent); }
+        .gemini-action-btn.recording { color: #ff3366 !important; background: rgba(255,51,102,0.2) !important; border-color: #ff3366; }
+
+        .preview-box-hero {
+            margin-top: 15px;
+            display: none;
+            align-items: center;
+            gap: 10px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 8px 15px;
+            max-width: 700px;
+            width: 100%;
+        }
+        .preview-box-hero.active { display: flex; }
+        .preview-thumb { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid var(--accent); }
+
+        .section-header { text-align: center; margin-bottom: 35px; padding: 0 10px; }
+        .section-title {
+            font-size: clamp(1.8rem, 4vw, 2.3rem);
+            font-weight: 900;
+            margin-bottom: 8px;
+            position: relative;
+            display: inline-block;
+        }
+        .section-title::after {
+            content: '';
+            display: block; width: 40px; height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            margin: 6px auto 0; border-radius: 2px;
+        }
+
+        .grid-4, .grid-3 { display: grid; gap: 20px; }
+        .grid-4 { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+        .grid-3 { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+        .card-modern {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 20px;
+            padding: 25px 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            width: 100%;
+        }
+        .card-modern:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent);
+            background: var(--surface-hover);
+            box-shadow: 0 15px 35px var(--accent-glow);
+        }
+
+        .settings-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 20px; padding: 25px 20px; max-width: 750px; margin: 0 auto;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            width: 100%;
+        }
+
+        .input-group { margin-bottom: 18px; text-align: right; width: 100%; }
+        .input-group label { display: block; margin-bottom: 6px; font-weight: 700; color: var(--text-main); font-size: 0.92rem; }
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%; padding: 12px 15px;
+            background: var(--bg-base);
+            border: 1.5px solid var(--border);
+            border-radius: 12px; color: var(--text-main); font-size: 0.95rem; outline: none;
+        }
+        .input-group select option { background: var(--surface); color: var(--text-main); }
+        .input-group input:focus, .input-group select:focus, .input-group textarea:focus {
+            border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .wizard-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: 24px; padding: 25px 20px; max-width: 800px; margin: 0 auto;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+            width: 100%;
+        }
+
+        .wizard-steps-indicator {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 30px; position: relative; padding: 0 10px;
+        }
+        .wizard-steps-indicator::before {
+            content: ''; position: absolute; top: 50%; left: 30px; right: 30px;
+            height: 2px; background: var(--border); z-index: 0; transform: translateY(-50%);
+        }
+        .step-circle {
+            width: 38px; height: 38px; border-radius: 50%;
+            background: var(--bg-base); border: 2px solid var(--border);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 0.9rem; color: var(--text-muted); position: relative; z-index: 1;
+        }
+        .step-circle.active { border-color: var(--primary); background: var(--primary); color: #fff; box-shadow: 0 0 15px var(--primary-glow); }
+        .step-circle.completed { border-color: var(--accent); background: var(--accent); color: #000; }
+
+        .wizard-step-content { display: none; }
+        .wizard-step-content.active { display: block; animation: fadeIn 0.35s ease; }
+
+        .chip-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px; margin-top: 12px;
+        }
+        .chip-option {
+            background: var(--bg-base); border: 1.5px solid var(--border);
+            border-radius: 14px; padding: 12px; text-align: center; font-weight: 700;
+            font-size: 0.88rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-main); user-select: none;
+        }
+        .chip-option:hover, .chip-option.selected {
+            border-color: var(--accent); background: var(--accent-glow); color: #fff;
+            box-shadow: 0 5px 20px var(--accent-glow); transform: translateY(-2px);
+        }
+        .chip-option i { color: var(--accent); }
+
+        .camera-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.88); backdrop-filter: blur(12px);
+            z-index: 1000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px; padding: 15px;
+        }
+        .camera-modal.active { display: flex; }
+        video, canvas { width: 100%; max-width: 380px; border-radius: 16px; border: 2px solid var(--accent); box-shadow: 0 0 25px var(--accent-glow); }
+
+        .verification-box {
+            background: var(--bg-base); border: 1.5px dashed var(--border);
+            border-radius: 16px; padding: 20px 15px; text-align: center; margin-bottom: 18px;
+        }
+        .selfie-preview-container {
+            margin-top: 12px; display: none; align-items: center; justify-content: center; gap: 12px;
+            background: var(--surface); padding: 8px; border-radius: 12px; border: 1px solid var(--accent);
+        }
+        .selfie-preview-img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; border: 1px solid var(--accent); }
+
+        .faq-item {
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: 12px; margin-bottom: 10px; padding: 15px; cursor: pointer;
+        }
+        .faq-question { font-weight: 700; display: flex; justify-content: space-between; align-items: center; font-size: 0.95rem; }
+        .faq-answer { margin-top: 8px; color: var(--text-muted); font-size: 0.88rem; display: none; }
+        .faq-item.active .faq-answer { display: block; }
+
+        .rating-stars { display: flex; justify-content: center; gap: 6px; font-size: 1.8rem; color: #64748b; cursor: pointer; margin: 15px 0; }
+        .rating-stars i.active, .rating-stars i:hover { color: var(--accent); text-shadow: 0 0 12px var(--accent-glow); }
+
+        .floating-support-container { position: fixed; bottom: 20px; right: 20px; z-index: 999; }
+        .floating-support-btn {
+            width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--accent);
+            background: #25d366; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; box-shadow: 0 8px 20px rgba(37, 211, 102, 0.4);
+        }
+        .floating-support-btn:hover { transform: scale(1.1); }
+
+        .support-menu-box {
+            position: absolute; bottom: 65px; right: 0; width: 260px;
+            background: var(--surface); border: 1.5px solid var(--border);
+            border-radius: 16px; padding: 15px; display: none; flex-direction: column; gap: 8px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
+        }
+        .support-menu-box.active { display: flex; }
+        .support-item-btn {
+            background: var(--bg-base); border: 1.5px solid var(--border); color: var(--text-main);
+            padding: 10px 12px; border-radius: 10px; text-decoration: none; font-weight: 700;
+            display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem;
+        }
+        .support-item-btn:hover { border-color: var(--accent); }
+
+        footer {
+            text-align: center;
+            padding: 20px 0;
+            margin-top: 40px;
+            border-top: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            position: relative;
+            z-index: 1;
+        }
+        footer span {
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        @media(max-width: 950px) {
+            .nav-links { display: none !important; }
+            .mobile-menu-btn { display: flex !important; }
+            .hero-title { font-size: 2rem; }
+            .hero-subtitle { font-size: 0.92rem; }
+            .wizard-card, .settings-card { padding: 15px; }
+            .search-box-modern { padding: 8px 12px; }
+            nav { width: 96%; top: 8px; }
+            .nav-container { height: 60px; padding: 0 10px; }
+        }
+    </style>
+</head>
+<body id="body-theme">
+
+    <div id="system-banner" class="system-banner"></div>
+
+    <div class="ambient-glow"></div>
+
+    <input type="file" id="hidden-image-input" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+
+    <div class="camera-modal" id="camera-modal">
+        <h3 style="color: #fff; text-align: center; font-size: 1.1rem;">التقاط صورة سيلفي حية للتحقق</h3>
+        <p style="color: var(--text-muted); font-size: 0.8rem; text-align:center;">يتم التحقق منها عبر المطورين (عبد الرحمن ومحمود)</p>
+        <video id="camera-feed" autoplay playsinline></video>
+        <canvas id="camera-canvas" style="display:none;"></canvas>
+        <div style="display: flex; gap: 10px; width: 100%; max-width: 380px;">
+            <button class="btn-modern btn-primary-glow" onclick="takeSnapshot()" style="flex:1;"><i class="fa-solid fa-camera"></i> التقاط</button>
+            <button class="btn-modern" onclick="closeCamera()" style="background:var(--primary); color:#fff; border:none; flex:1;">إلغاء</button>
+        </div>
+    </div>
+
+    <nav>
+        <div class="nav-container">
+            <a onclick="switchPage('home')" class="logo">
+                <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=100&q=80" alt="MA Code">
+                <span>MA Code</span>
+            </a>
+
+            <ul class="nav-links">
+                <li><a id="nav-home" onclick="switchPage('home')" class="active-link">الرئيسية</a></li>
+                <li><a id="nav-services" onclick="switchPage('services')">الخدمات</a></li>
+                <li><a id="nav-pricing" onclick="switchPage('pricing')">الباقات</a></li>
+                <li><a id="nav-portfolio" onclick="switchPage('portfolio')">أعمالنا</a></li>
+                <li><a id="nav-order" onclick="switchPage('order')">طلب موقع</a></li>
+                <li><a id="nav-settings" onclick="switchPage('settings')">الإعدادات</a></li>
+                <li><a id="nav-protection" onclick="switchPage('protection')">الأمان</a></li>
+            </ul>
+
+            <div class="nav-actions">
+                <button class="icon-btn-modern" onclick="toggleTheme()" title="تبديل الإضاءة"><i class="fa-solid fa-moon" id="theme-icon"></i></button>
+                <a onclick="switchPage('order')" class="btn-modern btn-primary-glow" style="padding: 8px 12px; font-size: 0.82rem;"><i class="fa-solid fa-rocket"></i> اطلب</a>
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()" title="القائمة"><i class="fa-solid fa-bars" id="mobile-menu-icon"></i></button>
+            </div>
+        </div>
+
+        <div class="mobile-dropdown" id="mobile-dropdown">
+            <a id="m-nav-home" onclick="switchPage('home'); toggleMobileMenu();">الرئيسية</a>
+            <a id="m-nav-services" onclick="switchPage('services'); toggleMobileMenu();">الخدمات</a>
+            <a id="m-nav-pricing" onclick="switchPage('pricing'); toggleMobileMenu();">الباقات</a>
+            <a id="m-nav-portfolio" onclick="switchPage('portfolio'); toggleMobileMenu();">أعمالنا</a>
+            <a id="m-nav-order" onclick="switchPage('order'); toggleMobileMenu();">طلب موقع</a>
+            <a id="m-nav-settings" onclick="switchPage('settings'); toggleMobileMenu();">الإعدادات</a>
+            <a id="m-nav-protection" onclick="switchPage('protection'); toggleMobileMenu();">الأمان</a>
+        </div>
+    </nav>
+
+    <div class="floating-support-container">
+        <div class="support-menu-box" id="support-menu">
+            <div style="font-weight: 800; border-bottom: 1px solid var(--border); padding-bottom: 6px; font-size:0.85rem;">تواصل مباشر مع المطورين:</div>
+            <a href="https://wa.me/201148041323" target="_blank" class="support-item-btn">
+                <span>عبد الرحمن</span>
+                <span style="color:var(--accent); font-family:monospace;">01148041323</span>
+            </a>
+            <a href="https://wa.me/201279364446" target="_blank" class="support-item-btn">
+                <span>محمود</span>
+                <span style="color:var(--accent); font-family:monospace;">01279364446</span>
+            </a>
+        </div>
+        <button class="floating-support-btn" onclick="toggleSupportMenu()" title="الدعم المباشر">
+            <i class="fa-brands fa-whatsapp"></i>
+        </button>
+    </div>
+
+    <div id="page-home" class="page-view active-page">
+        <section class="container hero-section">
+            <div class="hype-badge">
+                <i class="fa-solid fa-fire" style="color:var(--accent);"></i> اصنع مستقبلك الرقمي الآن بكل سهولة!
+            </div>
+            <h1 class="hero-title">من أين نبدأ مشروعك القادم؟</h1>
+            <p class="hero-subtitle">نصمم ونطور موقعك ومتجرك بأحدث المعايير البرمجية مع متابعة شفرة بشفرة معنا مباشرة.</p>
+            
+            <div class="search-box-modern">
+                <button class="gemini-action-btn" onclick="triggerImageUpload()" title="إرفاق صورة"><i class="fa-solid fa-plus"></i></button>
+                <input type="text" id="home-input" class="search-input" placeholder="اكتب فكرة موقعك هنا..." onkeydown="if(event.key==='Enter') submitHomeIdea()">
+                <button class="gemini-action-btn" id="mic-btn" onclick="toggleVoiceRecording()" title="تسجيل صوتي"><i class="fa-solid fa-microphone" id="mic-icon"></i></button>
+                <button class="gemini-action-btn" onclick="submitHomeIdea()" style="background:var(--primary); color:#fff; border:none;" title="إرسال"><i class="fa-solid fa-arrow-left"></i></button>
+            </div>
+
+            <div class="preview-box-hero" id="hero-preview-box">
+                <img id="hero-thumb" class="preview-thumb" src="" alt="معاينة" style="display:none;">
+                <div id="hero-voice-player" style="display:none; align-items:center; gap:8px; flex:1;">
+                    <button class="icon-btn-modern" onclick="playRecordedAudio()" style="width:32px; height:32px;"><i class="fa-solid fa-play" id="play-audio-icon"></i></button>
+                    <span style="font-size:0.8rem; color:var(--accent); font-family:monospace;">فويس نوت جاهز</span>
+                </div>
+                <span id="hero-preview-text" style="font-size:0.8rem; color:var(--text-muted); flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;"></span>
+                <button class="icon-btn-modern" onclick="removeHeroAttachment()" style="width:26px; height:26px; background:rgba(255,51,102,0.2); color:#ff3366; border:none;"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </section>
+    </div>
+
+    <div id="page-services" class="page-view">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">خدماتنا البرمجية</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">حلول متكاملة مصممة خصيصاً لمشروعك</p>
+            </div>
+            <div class="grid-4">
+                <div class="card-modern">
+                    <i class="fa-solid fa-utensils" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 12px;"></i>
+                    <h3>مطاعم وكافيهات</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">منيو تفاعلي وإدارة طلبات سريعة عبر الواتساب.</p>
+                </div>
+                <div class="card-modern">
+                    <i class="fa-solid fa-cart-shopping" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 12px;"></i>
+                    <h3>متاجر إلكترونية</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">واجهات متاجر سريعة لزيادة المبيعات والأرباح.</p>
+                </div>
+                <div class="card-modern">
+                    <i class="fa-solid fa-gauge-high" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 12px;"></i>
+                    <h3>لوحات تحكم</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">إدارة سلسة للمنتجات والأقسام والعملاء.</p>
+                </div>
+                <div class="card-modern">
+                    <i class="fa-solid fa-laptop-code" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 12px;"></i>
+                    <h3>مواقع تعريفية</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">بورتفوليو سينمائي لتعزيز هويتك الرقمية.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-pricing" class="page-view">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">الباقات البرمجية</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">اختر الحزمة المناسبة لطبيعة مشروعك</p>
+            </div>
+            <div class="grid-3">
+                <div class="card-modern">
+                    <h3>الباقة الأساسية</h3>
+                    <p style="color: var(--accent); font-weight: 700; margin: 8px 0; font-size: 0.9rem;">للمشاريع الناشئة</p>
+                    <ul style="list-style: none; color: var(--text-muted); font-size: 0.85rem; text-align: right; margin: 15px 0; display: flex; flex-direction: column; gap: 6px;">
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> موقع تعريفي سريع</li>
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> ربط بالواتساب</li>
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> دعم لمدة شهر</li>
+                    </ul>
+                    <button class="btn-modern btn-primary-glow" onclick="selectPackage('الباقة الأساسية')" style="width:100%; justify-content:center;">طلب الباقة</button>
+                </div>
+                <div class="card-modern" style="border-color: var(--primary);">
+                    <div style="background:var(--primary); color:#fff; font-size:0.7rem; padding:3px 8px; border-radius:8px; display:inline-block; margin-bottom:8px;">الأكثر طلباً 🔥</div>
+                    <h3>الباقة الاحترافية</h3>
+                    <p style="color: var(--accent); font-weight: 700; margin: 8px 0; font-size: 0.9rem;">للمطاعم والمتاجر</p>
+                    <ul style="list-style: none; color: var(--text-muted); font-size: 0.85rem; text-align: right; margin: 15px 0; display: flex; flex-direction: column; gap: 6px;">
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> متجر / منيو تفاعلي</li>
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> لوحة تحكم مخصصة</li>
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> دعم فني 3 أشهر</li>
+                    </ul>
+                    <button class="btn-modern btn-primary-glow" onclick="selectPackage('الباقة الاحترافية')" style="width:100%; justify-content:center;">طلب الاحترافية</button>
+                </div>
+                <div class="card-modern">
+                    <h3>الباقة الشاملة</h3>
+                    <p style="color: var(--accent); font-weight: 700; margin: 8px 0; font-size: 0.9rem;">للشركات الكبرى</p>
+                    <ul style="list-style: none; color: var(--text-muted); font-size: 0.85rem; text-align: right; margin: 15px 0; display: flex; flex-direction: column; gap: 6px;">
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> منصة ويب متكاملة</li>
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> حماية وتشفير متطور</li>
+                        <li><i class="fa-solid fa-check" style="color:var(--accent);"></i> دعم سنة كاملة</li>
+                    </ul>
+                    <button class="btn-modern btn-primary-glow" onclick="selectPackage('الباقة الشاملة')" style="width:100%; justify-content:center;">طلب الشاملة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-portfolio" class="page-view">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">نماذج من أعمالنا</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">مشاريع تم تصميمها وتنفيذها بأعلى معايير الإتقان</p>
+            </div>
+            <div class="grid-3">
+                <div class="card-modern">
+                    <div style="height: 120px; background: rgba(212,175,55,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: var(--accent); margin-bottom: 12px;"><i class="fa-solid fa-burger"></i></div>
+                    <h3>منيو مطعم البرجر الذهبي</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">نظام طلبات تفاعلي مباشر عبر الواتساب.</p>
+                </div>
+                <div class="card-modern">
+                    <div style="height: 120px; background: rgba(212,175,55,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: var(--accent); margin-bottom: 12px;"><i class="fa-solid fa-store"></i></div>
+                    <h3>متجر أزياء الأناقة</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">متجر إلكتروني متكامل سريع التصفح.</p>
+                </div>
+                <div class="card-modern">
+                    <div style="height: 120px; background: rgba(212,175,55,0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 2.2rem; color: var(--accent); margin-bottom: 12px;"><i class="fa-solid fa-chart-line"></i></div>
+                    <h3>لوحة تحكم شركة الشحن</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 6px;">إدارة متطورة للشحنات والتقارير المالية.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-settings" class="page-view">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">إعدادات الحساب والعرض</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">إدارة حساب المستخدم وتفضيلات البيانات</p>
+            </div>
+
+            <div class="settings-card">
+                <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 12px;">
+                    <h3 style="color:var(--accent); font-size: 1.1rem;"><i class="fa-solid fa-user-gear"></i> بيانات حساب المستخدم</h3>
+                    <p style="font-size: 0.82rem; color: var(--text-muted); margin-top: 4px;">عند كتابتك لبياناتك مرة واحدة، سيقوم المتصفح بتعبئتها تلقائياً وترسل لـ لوحة التحكم مباشرة.</p>
+                </div>
+
+                <div class="input-group">
+                    <label>اسم المستخدم:</label>
+                    <input type="text" id="set-username" autocomplete="username" placeholder="مثال: محمود عماد" oninput="autoSaveField('username', this.value)">
+                </div>
+                <div class="input-group">
+                    <label>رقم الهاتف / الواتساب:</label>
+                    <input type="tel" id="set-phone" autocomplete="tel" placeholder="01XXXXXXXXX" oninput="autoSaveField('phone', this.value)">
+                </div>
+                <div class="input-group">
+                    <label>البريد الإلكتروني:</label>
+                    <input type="email" id="set-email" autocomplete="email" placeholder="example@domain.com" oninput="autoSaveField('email', this.value)">
+                </div>
+                <div class="input-group">
+                    <label>كلمة المرور:</label>
+                    <input type="password" id="set-password" autocomplete="current-password" placeholder="••••••••" oninput="autoSaveField('password', this.value)">
+                </div>
+
+                <div style="margin-top: 25px; text-align: left;">
+                    <button class="btn-modern btn-primary-glow" onclick="saveSettingsData()" style="width: 100%; justify-content: center;"><i class="fa-solid fa-floppy-disk"></i> حفظ وإرسال الحساب للأنظمة</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-order" class="page-view">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">ابدأ مشروعك معنا الآن</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">أخبرنا بتفاصيل فكرتك وتواصل معنا فوراً</p>
+            </div>
+
+            <div class="wizard-card">
+                <div class="wizard-steps-indicator">
+                    <div class="step-circle active" id="ind-1">1</div>
+                    <div class="step-circle" id="ind-2">2</div>
+                    <div class="step-circle" id="ind-3">3</div>
+                </div>
+
+                <div class="wizard-step-content active" id="step-1">
+                    <h3 style="margin-bottom: 15px; font-size: 1.15rem;"><i class="fa-solid fa-pen-nib" style="color:var(--accent);"></i> ما هي فكرة أو نوع موقعك المطلوب؟</h3>
+                    <div class="input-group">
+                        <input type="text" id="order-type" placeholder="اكتب فكرة موقعك هنا...">
+                    </div>
+                    <div class="chip-grid">
+                        <div class="chip-option" onclick="selectType(this, 'متجر إلكتروني')"><i class="fa-solid fa-cart-shopping"></i> متجر إلكتروني</div>
+                        <div class="chip-option" onclick="selectType(this, 'مطعم / كافيه')"><i class="fa-solid fa-utensils"></i> مطعم / كافيه</div>
+                        <div class="chip-option" onclick="selectType(this, 'لوحة تحكم')"><i class="fa-solid fa-gauge-high"></i> لوحة تحكم</div>
+                        <div class="chip-option" onclick="selectType(this, 'موقع تعريفي')"><i class="fa-solid fa-briefcase"></i> موقع تعريفي</div>
+                    </div>
+                    <div style="margin-top: 25px; text-align: left;">
+                        <button class="btn-modern btn-primary-glow" onclick="goToStep(2)" style="width: 100%; justify-content: center;">التالي <i class="fa-solid fa-arrow-left"></i></button>
+                    </div>
+                </div>
+
+                <div class="wizard-step-content" id="step-2">
+                    <h3 style="margin-bottom: 15px; font-size: 1.15rem;"><i class="fa-solid fa-sliders" style="color:var(--accent);"></i> حدد المميزات المطلوبة في موقعك:</h3>
+                    <div class="chip-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));">
+                        <div class="chip-option" onclick="toggleFeature(this, 'طلب مباشر عبر الواتساب')"><i class="fa-brands fa-whatsapp"></i> طلب عبر الواتساب</div>
+                        <div class="chip-option" onclick="toggleFeature(this, 'إدارة الأقسام والمنيو')"><i class="fa-solid fa-bars-staggered"></i> إدارة الأقسام</div>
+                        <div class="chip-option" onclick="toggleFeature(this, 'تنبيهات صوتية للطلبات')"><i class="fa-solid fa-bell"></i> تنبيهات صوتية</div>
+                        <div class="chip-option" onclick="toggleFeature(this, 'دعم لغات متعددة')"><i class="fa-solid fa-language"></i> متعدد اللغات</div>
+                        <div class="chip-option" onclick="toggleFeature(this, 'نظام حسابات وصلاحيات')"><i class="fa-solid fa-user-lock"></i> نظام حسابات</div>
+                        <div class="chip-option" onclick="toggleFeature(this, 'بوابة دفع إلكترونية')"><i class="fa-solid fa-credit-card"></i> بوابة دفع</div>
+                    </div>
+                    <div style="margin-top: 25px; display: flex; gap: 10px;">
+                        <button class="btn-modern" onclick="goToStep(1)" style="flex:1; justify-content:center;"><i class="fa-solid fa-arrow-right"></i> السابق</button>
+                        <button class="btn-modern btn-primary-glow" onclick="goToStep(3)" style="flex:1; justify-content:center;">التالي <i class="fa-solid fa-arrow-left"></i></button>
+                    </div>
+                </div>
+
+                <div class="wizard-step-content" id="step-3">
+                    <h3 style="margin-bottom: 15px; font-size: 1.15rem;"><i class="fa-solid fa-user-check" style="color:var(--accent);"></i> بيانات التواصل والتحقق:</h3>
+                    <div class="input-group">
+                        <label>الاسم الكامل:</label>
+                        <input type="text" id="client-name" autocomplete="name" placeholder="أدخل اسمك الكريم (مثل: محمود عماد)">
+                    </div>
+                    <div class="input-group">
+                        <label>رقم الهاتف / الواتساب:</label>
+                        <input type="tel" id="client-phone" autocomplete="tel" placeholder="01XXXXXXXXX">
+                    </div>
+
+                    <div class="verification-box">
+                        <p style="margin-bottom: 8px; font-weight: 700; font-size: 0.9rem;"><i class="fa-solid fa-camera-retro" style="color:var(--accent);"></i> التحقق من الشخصية عبر السيلفي:</p>
+                        <button class="btn-modern btn-primary-glow" onclick="openCamera()" style="width:100%; justify-content:center;"><i class="fa-solid fa-camera"></i> التقاط سيلفي للتحقق</button>
+                        
+                        <div class="selfie-preview-container" id="selfie-preview-box">
+                            <img id="captured-selfie-img" class="selfie-preview-img" src="" alt="سيلفي">
+                            <div>
+                                <p style="font-size: 0.8rem; color: var(--accent); font-weight: 700;">تم الالتقاط بنجاح ✅</p>
+                                <button type="button" onclick="retakeSelfie()" style="background:none; border:none; color:#ff3366; font-size:0.75rem; cursor:pointer; margin-top:2px;"><i class="fa-solid fa-rotate-right"></i> إعادة التقاط</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>ملاحظات إضافية (اختياري):</label>
+                        <textarea id="client-notes" rows="2" placeholder="أكتب أي تفاصيل أخرى..."></textarea>
+                    </div>
+
+                    <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn-modern" onclick="goToStep(2)" style="flex:1; justify-content:center;"><i class="fa-solid fa-arrow-right"></i> السابق</button>
+                        </div>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button class="btn-modern btn-primary-glow" onclick="sendOrder('201148041323')" style="background: linear-gradient(135deg, #25d366, #128c7e); flex:1; justify-content:center;"><i class="fa-brands fa-whatsapp"></i> عبد الرحمن</button>
+                            <button class="btn-modern btn-primary-glow" onclick="sendOrder('201279364446')" style="background: linear-gradient(135deg, #25d366, #128c7e); flex:1; justify-content:center;"><i class="fa-brands fa-whatsapp"></i> محمود</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="page-protection" class="page-view">
+        <div class="container">
+            <div class="section-header">
+                <h2 class="section-title">الأمان والأسئلة والتقييم</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem;">معايير الحماية، الأسئلة الشائعة، وتقييمك لخدماتنا</p>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; color: var(--accent);"><i class="fa-solid fa-shield-halved"></i> كيف نحمي بياناتك؟</h3>
+                <div class="grid-3">
+                    <div class="card-modern" style="text-align: center;">
+                        <i class="fa-solid fa-lock" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 10px;"></i>
+                        <h4>تشفير البيانات</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">بياناتك مشفرة ببروتوكولات متطورة.</p>
+                    </div>
+                    <div class="card-modern" style="text-align: center;">
+                        <i class="fa-solid fa-server" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 10px;"></i>
+                        <h4>استضافة آمنة</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">سيرفرات مؤمنة ضد الهجمات.</p>
+                    </div>
+                    <div class="card-modern" style="text-align: center;">
+                        <i class="fa-solid fa-user-shield" style="font-size: 1.8rem; color: var(--accent); margin-bottom: 10px;"></i>
+                        <h4>صلاحيات ثنائية</h4>
+                        <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">حماية لوحات التحكم بكلمات مرور.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 30px;">
+                <h3 style="font-size: 1.2rem; margin-bottom: 12px; color: var(--text-main);"><i class="fa-solid fa-circle-question" style="color: var(--accent);"></i> الأسئلة الشائعة</h3>
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">كم يستغرق تسليم الموقع عادة؟ <i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="faq-answer">يتراوح وقت التسليم بين 3 إلى 7 أيام عمل حسب حجم المشروع.</div>
+                </div>
+                <div class="faq-item" onclick="toggleFaq(this)">
+                    <div class="faq-question">هل يدعم الموقع التعديل بعد الاستلام؟ <i class="fa-solid fa-chevron-down"></i></div>
+                    <div class="faq-answer">نعم، نقدم فترة دعم فني مجانية لتعديل أي تفاصيل وضمان عمل الموقع بكفاءة.</div>
+                </div>
+            </div>
+
+            <div style="text-align: center; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 25px 15px;">
+                <h3 style="font-size: 1.3rem; margin-bottom: 6px; color: var(--accent);"><i class="fa-solid fa-star"></i> تقييمك لخدماتنا</h3>
+                <p style="color: var(--text-muted); margin-bottom: 12px; font-size: 0.88rem;">شاركنا برأيك لنستمر في التطوير:</p>
+                
+                <div class="rating-stars">
+                    <i class="fa-solid fa-star" onclick="setRating(1)"></i>
+                    <i class="fa-solid fa-star" onclick="setRating(2)"></i>
+                    <i class="fa-solid fa-star" onclick="setRating(3)"></i>
+                    <i class="fa-solid fa-star" onclick="setRating(4)"></i>
+                    <i class="fa-solid fa-star" onclick="setRating(5)"></i>
+                </div>
+
+                <div class="input-group" style="max-width: 450px; margin: 12px auto;">
+                    <textarea id="feedback-notes" rows="2" placeholder="اكتب ملاحظاتك..."></textarea>
+                </div>
+                <button class="btn-modern btn-primary-glow" onclick="submitRating()" style="width: 100%; max-width: 250px; justify-content: center;"><i class="fa-solid fa-paper-plane"></i> إرسال التقييم</button>
+                <p id="thank-you-msg" style="margin-top: 10px; color: var(--accent); font-weight: 700; display: none; font-size: 0.9rem;">⭐ شكراً لتقييمك وملاحظاتك القيمة!</p>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <div class="container">
+            جميع الحقوق محفوظة لدي <span>MA</span> &copy; 2026
+        </div>
+    </footer>
+
+    <script>
+        const SUPABASE_URL = 'https://qmvnobnkzdqgasollkzv.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_AETlvXHTGMEtQPQCQOhEKQ_Bn7tJX0K';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        let currentStep = 1;
+        let orderData = { type: '', features: [], name: '', phone: '', selfieTaken: false, selfieDataUrl: null, selectedPackage: 'لم يتم اختيار باقة محددة', username: '', email: '', password: '' };
+        let videoStream = null;
+        
+        let uploadedImageAttached = false;
+        let uploadedImageDataUrl = null;
+        let voiceNoteAttached = false;
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlobUrl = null;
+        let audioDataUrl = null;
+        let audioElement = null;
+        let isRecording = false;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            checkSystemStatus();
+
+            const savedUser = localStorage.getItem('ma_username');
+            const savedPhone = localStorage.getItem('ma_phone');
+            const savedEmail = localStorage.getItem('ma_email');
+            const savedPass = localStorage.getItem('ma_password');
+
+            if(savedUser) {
+                document.getElementById('set-username').value = savedUser;
+                orderData.username = savedUser;
+                document.getElementById('client-name').value = savedUser;
+            }
+            if(savedPhone) {
+                document.getElementById('set-phone').value = savedPhone;
+                orderData.phone = savedPhone;
+                document.getElementById('client-phone').value = savedPhone;
+            }
+            if(savedEmail) {
+                document.getElementById('set-email').value = savedEmail;
+                orderData.email = savedEmail;
+            }
+            if(savedPass) {
+                document.getElementById('set-password').value = savedPass;
+                orderData.password = savedPass;
+            }
+        });
+
+        function checkSystemStatus() {
+            const status = localStorage.getItem('am_system_status') || 'open';
+            const banner = document.getElementById('system-banner');
+            
+            if (status === 'delayed') {
+                banner.className = 'system-banner delayed';
+                banner.innerText = '🟡 تنبيه: الطلبات تعمل حالياً ولكن قد تستغرق وقتاً أكثر في التسليم.';
+            } else if (status === 'closed') {
+                banner.className = 'system-banner closed';
+                banner.innerText = '🔴 تنبيه: تم إيقاف استقبال الطلبات الجديدة مؤقتاً لحين انتهاء الطلبات الحالية.';
+            } else {
+                banner.className = 'system-banner';
+            }
+        }
+
+        function autoSaveField(field, value) {
+            localStorage.setItem(`ma_${field}`, value);
+            orderData[field] = value;
+            if(field === 'username') document.getElementById('client-name').value = value;
+            if(field === 'phone') document.getElementById('client-phone').value = value;
+        }
+
+        function toggleMobileMenu() {
+            const dropdown = document.getElementById('mobile-dropdown');
+            const icon = document.getElementById('mobile-menu-icon');
+            dropdown.classList.toggle('active');
+            icon.className = dropdown.classList.contains('active') ? "fa-solid fa-xmark" : "fa-solid fa-bars";
+        }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-view').forEach(p => p.classList.remove('active-page'));
+            document.querySelectorAll('.nav-links a').forEach(a => a.classList.remove('active-link'));
+            document.querySelectorAll('.mobile-dropdown a').forEach(a => a.classList.remove('active-link'));
+            
+            document.getElementById(`page-${pageId}`).classList.add('active-page');
+            
+            const activeNav = document.getElementById(`nav-${pageId}`);
+            if(activeNav) activeNav.classList.add('active-link');
+
+            const activeMobileNav = document.getElementById(`m-nav-${pageId}`);
+            if(activeMobileNav) activeMobileNav.classList.add('active-link');
+
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+
+        function toggleTheme() {
+            const body = document.getElementById('body-theme');
+            const icon = document.getElementById('theme-icon');
+            body.classList.toggle('light-mode');
+            icon.className = body.classList.contains('light-mode') ? "fa-solid fa-sun" : "fa-solid fa-moon";
+        }
+
+        function toggleSupportMenu() {
+            document.getElementById('support-menu').classList.toggle('active');
+        }
+
+        document.addEventListener('click', function(e) {
+            const container = document.querySelector('.floating-support-container');
+            const navContainer = document.querySelector('nav');
+            if(!container.contains(e.target)) {
+                document.getElementById('support-menu').classList.remove('active');
+            }
+            if(!navContainer.contains(e.target)) {
+                document.getElementById('mobile-dropdown').classList.remove('active');
+                document.getElementById('mobile-menu-icon').className = "fa-solid fa-bars";
+            }
+        });
+
+        async function saveSettingsData() {
+            orderData.username = document.getElementById('set-username').value.trim();
+            orderData.phone = document.getElementById('set-phone').value.trim();
+            orderData.email = document.getElementById('set-email').value.trim();
+            orderData.password = document.getElementById('set-password').value.trim();
+
+            if(!orderData.username || !orderData.phone) {
+                alert("يرجى إدخال اسم المستخدم ورقم الهاتف أولاً!");
+                return;
+            }
+
+            localStorage.setItem('ma_username', orderData.username);
+            localStorage.setItem('ma_phone', orderData.phone);
+            localStorage.setItem('ma_email', orderData.email);
+            localStorage.setItem('ma_password', orderData.password);
+
+            try {
+                await _supabase.from('accounts').insert([{
+                    name: orderData.username,
+                    phone: orderData.phone,
+                    age: '16 سنة فأكثر',
+                    regDate: new Date().toLocaleDateString('ar-EG'),
+                    avatar: orderData.selfieDataUrl || 'https://via.placeholder.com/50'
+                }]);
+            } catch(e) {
+                console.log("حفظ الحساب محلياً");
+            }
+
+            alert("✅ تم حفظ الحساب وإرساله للوحة التحكم بنجاح!");
+            switchPage('order');
+        }
+
+        function triggerImageUpload() {
+            document.getElementById('hidden-image-input').click();
+        }
+
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if(file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    uploadedImageDataUrl = e.target.result;
+                    document.getElementById('hero-thumb').src = uploadedImageDataUrl;
+                    document.getElementById('hero-thumb').style.display = 'block';
+                    document.getElementById('hero-voice-player').style.display = 'none';
+                    document.getElementById('hero-preview-text').innerText = `صورة: ${file.name}`;
+                    document.getElementById('hero-preview-box').classList.add('active');
+                    uploadedImageAttached = true;
+                    voiceNoteAttached = false;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function toggleVoiceRecording() {
+            const micBtn = document.getElementById('mic-btn');
+            const micIcon = document.getElementById('mic-icon');
+
+            if(!isRecording) {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        audioBlobUrl = URL.createObjectURL(blob);
+                        audioElement = new Audio(audioBlobUrl);
+
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        reader.onloadend = () => { audioDataUrl = reader.result; };
+
+                        document.getElementById('hero-thumb').style.display = 'none';
+                        document.getElementById('hero-voice-player').style.display = 'flex';
+                        document.getElementById('hero-preview-text').innerText = '';
+                        document.getElementById('hero-preview-box').classList.add('active');
+                        voiceNoteAttached = true;
+                        uploadedImageAttached = false;
+                    };
+
+                    mediaRecorder.start();
+                    isRecording = true;
+                    micBtn.classList.add('recording');
+                    micIcon.className = "fa-stop";
+                } catch(err) {
+                    alert('يرجى السماح بالوصول للميكروفون!');
+                }
+            } else {
+                mediaRecorder.stop();
+                isRecording = false;
+                micBtn.classList.remove('recording');
+                micIcon.className = "fa-microphone";
+            }
+        }
+
+        function playRecordedAudio() {
+            if(audioElement) {
+                const icon = document.getElementById('play-audio-icon');
+                if(audioElement.paused) {
+                    audioElement.play();
+                    icon.className = "fa-solid fa-pause";
+                    audioElement.onended = () => icon.className = "fa-solid fa-play";
+                } else {
+                    audioElement.pause();
+                    icon.className = "fa-solid fa-play";
+                }
+            }
+        }
+
+        function removeHeroAttachment() {
+            document.getElementById('hero-preview-box').classList.remove('active');
+            uploadedImageAttached = false;
+            uploadedImageDataUrl = null;
+            voiceNoteAttached = false;
+            audioBlobUrl = null;
+            audioDataUrl = null;
+            if(audioElement) { audioElement.pause(); audioElement = null; }
+        }
+
+        function submitHomeIdea() {
+            const status = localStorage.getItem('am_system_status') || 'open';
+            if (status === 'closed') {
+                alert('🛑 عذراً! تم إيقاف استقبال الطلبات الجديدة مؤقتاً لحين انتهاء الطلبات الحالية من لوحة التحكم.');
+                return;
+            }
+
+            const val = document.getElementById('home-input').value.trim();
+            if(!val && !uploadedImageAttached && !voiceNoteAttached) {
+                alert('يرجى كتابة فكرة موقعك أو إرفاق صورة/صوت أولاً!');
+                return;
+            }
+            orderData.type = val ? val : (voiceNoteAttached ? "طلب عبر فويس نوت" : "طلب عبر صورة مرفقة");
+            document.getElementById('order-type').value = orderData.type;
+            switchPage('order');
+            goToStep(2);
+        }
+
+        function selectPackage(packageName) {
+            const status = localStorage.getItem('am_system_status') || 'open';
+            if (status === 'closed') {
+                alert('🛑 عذراً! تم إيقاف استقبال الطلبات الجديدة مؤقتاً لحين انتهاء الطلبات الحالية من لوحة التحكم.');
+                return;
+            }
+            orderData.selectedPackage = packageName;
+            switchPage('order');
+            goToStep(1);
+        }
+
+        function selectType(el, typeName) {
+            document.querySelectorAll('#step-1 .chip-option').forEach(c => c.classList.remove('selected'));
+            el.classList.add('selected');
+            orderData.type = typeName;
+            document.getElementById('order-type').value = typeName;
+        }
+
+        function toggleFeature(el, featureName) {
+            el.classList.toggle('selected');
+            if(orderData.features.includes(featureName)) {
+                orderData.features = orderData.features.filter(f => f !== featureName);
+            } else {
+                orderData.features.push(featureName);
+            }
+        }
+
+        function goToStep(step) {
+            currentStep = step;
+            document.querySelectorAll('.wizard-step-content').forEach(s => s.classList.remove('active'));
+            document.getElementById(`step-${step}`).classList.add('active');
+
+            for(let i=1; i<=3; i++) {
+                const circle = document.getElementById(`ind-${i}`);
+                circle.className = i < step ? 'step-circle completed' : (i === step ? 'step-circle active' : 'step-circle');
+            }
+        }
+
+        async function openCamera() {
+            const modal = document.getElementById('camera-modal');
+            const video = document.getElementById('camera-feed');
+            modal.classList.add('active');
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
+                video.srcObject = videoStream;
+            } catch(e) {
+                alert('تعذر فتح الكاميرا.');
+                modal.classList.remove('active');
+            }
+        }
+
+        function takeSnapshot() {
+            const video = document.getElementById('camera-feed');
+            const canvas = document.getElementById('camera-canvas');
+            canvas.width = video.videoWidth || 320;
+            canvas.height = video.videoHeight || 240;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            orderData.selfieDataUrl = canvas.toDataURL('image/png');
+            document.getElementById('captured-selfie-img').src = orderData.selfieDataUrl;
+            document.getElementById('selfie-preview-box').style.display = 'flex';
+            
+            closeCamera();
+            orderData.selfieTaken = true;
+        }
+
+        function retakeSelfie() {
+            document.getElementById('selfie-preview-box').style.display = 'none';
+            orderData.selfieTaken = false;
+            orderData.selfieDataUrl = null;
+            openCamera();
+        }
+
+        function closeCamera() {
+            const modal = document.getElementById('camera-modal');
+            modal.classList.remove('active');
+            if(videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+        }
+
+        function toggleFaq(el) { el.classList.toggle('active'); }
+
+        let currentRating = 0;
+        function setRating(stars) {
+            currentRating = stars;
+            document.querySelectorAll('.rating-stars i').forEach((s, idx) => {
+                s.classList.toggle('active', idx < stars);
+            });
+        }
+
+        function submitRating() {
+            if(currentRating === 0) { alert('يرجى تحديد عدد النجوم أولاً!'); return; }
+            document.getElementById('thank-you-msg').style.display = 'block';
+            setTimeout(() => { document.getElementById('feedback-notes').value = ''; }, 3000);
+        }
+
+        async function sendOrder(phoneTarget) {
+            const status = localStorage.getItem('am_system_status') || 'open';
+            if (status === 'closed') {
+                alert('🛑 عذراً! استقبال الطلبات مغلق حالياً بقرار من إدارة التحكم لحين انتهاء الطلبات القائمة.');
+                return;
+            }
+
+            const name = document.getElementById('client-name').value.trim();
+            const clientPhone = document.getElementById('client-phone').value.trim();
+            const type = document.getElementById('order-type').value.trim();
+            const notes = document.getElementById('client-notes').value.trim();
+
+            if(!type || !name || !clientPhone) {
+                alert('يرجى استكمال البيانات الأساسية (نوع الموقع، اسمك، ورقم هاتفك) أولاً!');
+                return;
+            }
+
+            try {
+                let { data: blocked } = await _supabase.from('blocked_users').select('phone').eq('phone', clientPhone);
+                if (blocked && blocked.length > 0) {
+                    alert('⚠️ عذراً، هذا الرقم محظور من استخدام النظام حالياً.');
+                    return;
+                }
+            } catch(e){}
+
+            const orderPayload = {
+                name: name,
+                phone: clientPhone,
+                desc: `${type} | ${orderData.features.join(', ')} | ${notes}`,
+                status: 'جديد',
+                avatar: orderData.selfieDataUrl || 'https://via.placeholder.com/50',
+                audioUrl: audioDataUrl || '',
+                imgUrl: uploadedImageDataUrl || '',
+                timestamp: Date.now()
+            };
+
+            try {
+                await _supabase.from('orders').insert([orderPayload]);
+            } catch(err) {
+                console.log("تم حفظ الطلب محلياً");
+            }
+
+            const orderId = 'ORD-' + Math.floor(10000 + Math.random() * 90000);
+            const uName = name || localStorage.getItem('ma_username') || 'غير متوفر';
+
+            let msg = `🚀 *طلب جديد عبر MA Code (مربوط باللوحة)*\n\n`;
+            msg += `🔖 *رقم الطلب:* ${orderId}\n`;
+            msg += `👤 الاسم: ${uName}\n`;
+            msg += `📞 الهاتف: ${clientPhone}\n\n`;
+            
+            msg += `📦 *الباقة:* ${orderData.selectedPackage}\n`;
+            msg += `💻 نوع الموقع / الفكرة: ${type}\n`;
+            if(orderData.features.length > 0) msg += `✨ المميزات: ${orderData.features.join(', ')}\n`;
+            if(orderData.selfieTaken) msg += `🪪 تم التقاط صورة التحقق السيلفي وتم رفعها في اللوحة.\n`;
+            if(voiceNoteAttached) msg += `🎤 تم إرفاق فويس نوت للطلب.\n`;
+            if(uploadedImageAttached) msg += `🖼️ تم إرفاق صورة توضيحية.\n`;
+            if(notes) msg += `📝 ملاحظات: ${notes}\n`;
+
+            window.open(`https://wa.me/${phoneTarget}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+    </script>
+</body>
+</html>
